@@ -90,7 +90,7 @@ class CAPECorrDataset(data.Dataset):
             single_view (bool): whether to generate single-view point clouds or full-body point clouds
         '''
         # Attributes
-        self.cape_path = '/home/sfwang/Datasets/CAPE'
+        self.cape_path = '/home/yu/AMirror/MetaAvatar-release/cape'
         self.dataset_folder = dataset_folder
         self.raw_scan_folder = raw_scan_folder
         self.use_aug = use_aug
@@ -395,7 +395,7 @@ class CAPECorrDataset(data.Dataset):
             if np.max(raw_trimesh.vertices) > 10:
                 raw_trimesh.vertices /= 1000 # mm to m
 
-        body_mesh_a_pose = points_dict['a_pose_mesh_points']
+        body_mesh_a_pose = points_dict['a_pose_mesh_points']  # 有衣服的 a-pose, 用 cape 可生成 posed-cloth-body-mesh
         # Break symmetry if given in float16:
         if body_mesh_a_pose.dtype == np.float16:
             body_mesh_a_pose = body_mesh_a_pose.astype(np.float32)

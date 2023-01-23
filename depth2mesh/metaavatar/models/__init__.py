@@ -90,8 +90,8 @@ class MetaAvatar(nn.Module):
         out_dict = {}
         if stage == 'skinning_weights':
             # Predict backward skinning weights
-            c = self.encode_inputs(inputs, forward=False, **kwargs)
-            c_p = self.get_point_features(p, c=c, forward=False, **kwargs)
+            c = self.encode_inputs(inputs, forward=False, **kwargs)  # (ConvPointNet)cal 2d feature of 3 projection planes through unet
+            c_p = self.get_point_features(p, c=c, forward=False, **kwargs) # cat 2d feature as 3d feature [bsize,96,5000]
 
             pts_W_bwd = self.decode_w(p, c=c_p, forward=False, **kwargs)
             pts_W_bwd = F.softmax(pts_W_bwd, dim=1).transpose(1, 2)
@@ -101,7 +101,7 @@ class MetaAvatar(nn.Module):
             p_hat = p_hat.detach()
 
             # Normalize input point clouds
-            with torch.no_grad():
+            with torch.no_grad():  # noramlize to 1.5
                 p_hat_org = p_hat * kwargs['scale'] / 1.5
                 coord_max = p_hat_org.max(dim=1, keepdim=True)[0]
                 coord_min = p_hat_org.min(dim=1, keepdim=True)[0]
@@ -117,8 +117,8 @@ class MetaAvatar(nn.Module):
                 inp_norm = p_hat_norm
 
             # Predict forward skinning weights
-            c = self.encode_inputs(inp_norm, forward=True, **kwargs)
-            c_p = self.get_point_features(p_hat_norm, c=c, forward=True, **kwargs)
+            c = self.encode_inputs(inp_norm, forward=True, **kwargs) # (ConvPointNet)cal 2d feature of 3 projection planes through unet
+            c_p = self.get_point_features(p_hat_norm, c=c, forward=True, **kwargs) # cat 2d feature as 3d feature
 
             pts_W_fwd = self.decode_w(p_hat_norm, c=c_p, forward=True, **kwargs)
             pts_W_fwd = F.softmax(pts_W_fwd, dim=1).transpose(1, 2)
@@ -171,13 +171,13 @@ class MetaAvatar(nn.Module):
         ''' Returns the encoding.
 
         Args:
-            inputs (tensor): input tensor)
+            inputs (tensor): input tensor) [bsize, 3d_sample_num, 3]
         '''
         batch_size = inputs.shape[0]
         device = self.device
 
         if forward and self.encoder_fwd is not None:
-            c = self.encoder_fwd(inputs, **kwargs)
+            c = self.encoder_fwd(inputs, **kwargs) # cal 2d feature of 3 projection planes through unet
         elif not forward and self.encoder_bwd is not None:
             c = self.encoder_bwd(inputs, **kwargs)
         else:

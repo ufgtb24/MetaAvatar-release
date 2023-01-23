@@ -27,6 +27,9 @@ parser.add_argument('--epochs-per-run', type=int, default=-1,
                     help='Number of epochs to train before restart.')
 
 if  __name__ == '__main__':
+    print(f'train pid : {os.getpid()}')
+    input()
+
     args = parser.parse_args()
     cfg = config.load_config(args.config, 'configs/default.yaml')
     is_cuda = (torch.cuda.is_available() and not args.no_cuda)
@@ -145,7 +148,7 @@ if  __name__ == '__main__':
 
     if cfg['training']['stage'] in ['skinning_weights', 'meta']:
         val_loader = torch.utils.data.DataLoader(
-            val_dataset, batch_size=1, num_workers=1, shuffle=False,
+            val_dataset, batch_size=1, num_workers=0, shuffle=False,
             collate_fn=data.collate_remove_none,
             worker_init_fn=data.worker_init_fn)
     elif cfg['training']['stage'] in ['meta-hyper']:

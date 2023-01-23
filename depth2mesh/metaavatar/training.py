@@ -123,7 +123,7 @@ class Trainer(BaseTrainer):
         if self.stage == 'skinning_weights':
             padding = (coord_max - coord_min) * 0.05
             points_corr_hat = (points_corr_hat / 2.0 + 0.5) * 1.1 * (coord_max - coord_min) + coord_min - padding + center
-            p_hat = out_dict['p_hat'] * kwargs['scale'] / 1.5
+            p_hat = out_dict['p_hat'] * kwargs['scale'] / 1.5 # 存疑，应该用 p_re， 重建坐标
 
             dist_bwd = torch.norm(points_corr_hat - p_hat, dim=-1).mean().item()
 

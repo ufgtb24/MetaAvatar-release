@@ -262,13 +262,13 @@ class ConvPointnet(nn.Module):
             # scatter plane features from points
             if key == 'grid':
                 fea = self.scatter(c.permute(0, 2, 1), index[key], dim_size=self.reso_grid**3)
-            else:
+            else:# 将3d 特征c投影到2d 平面上，重合点求平均，得到 fea
                 fea = self.scatter(c.permute(0, 2, 1), index[key], dim_size=self.reso_plane**2)
             if self.scatter == scatter_max:
                 fea = fea[0]
-            # gather feature back to points
+            # gather feature back to points (2d feature 又投影回 3d)
             fea = fea.gather(dim=2, index=index[key].expand(-1, fea_dim, -1))
-            c_out += fea
+            c_out += fea   # 将3个平面的 2d feature 相加
         return c_out.permute(0, 2, 1)
 
 
@@ -298,8 +298,8 @@ class ConvPointnet(nn.Module):
 
         net = self.blocks[0](net)
         for block in self.blocks[1:]:
-            pooled = self.pool_local(coord, index, net)
-            net = torch.cat([net, pooled], dim=2)
+            pooled = self.pool_local(coord, index, net)  # 按照 2d 坐标离散化
+            net = torch.cat([net, pooled], dim=2) # 立体信息融合了3平面的2d 投影信息
             net = block(net)
 
         c = self.fc_c(net)
@@ -307,7 +307,7 @@ class ConvPointnet(nn.Module):
         fea = OrderedDict()
         if 'grid' in self.plane_type:
             fea['grid'] = self.generate_grid_features(p, c, scale)
-        if 'xz' in self.plane_type:
+        if 'xz' in self.plane_type: # c 投影到2d算 2d feature
             fea['xz'] = self.generate_plane_features(p, scale, c, plane='xz')
         if 'xy' in self.plane_type:
             fea['xy'] = self.generate_plane_features(p, scale, c, plane='xy')

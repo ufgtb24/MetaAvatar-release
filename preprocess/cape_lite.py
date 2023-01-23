@@ -1,3 +1,6 @@
+import sys
+sys.path.append('/home/yu/AMirror/MetaAvatar-release')
+
 import os
 import glob
 import argparse
@@ -12,9 +15,10 @@ from scipy.spatial import cKDTree as KDTree
 
 from multiprocessing import Pool
 from functools import partial
+# from human_body_prior.body_model.body_model import BodyModel
 from human_body_prior.body_model.body_model import BodyModel
 from utils import export_points
-from im2mesh.utils.logs import create_logger
+# from im2mesh.utils.logs import create_logger
 
 SMPL2IPNET_IDX = np.array([11, 12, 13, 11, 3, 8, 11, 1, 6, 11, 1, 6, 0, 11, 11, 0, 5, 10, 4, 9, 2, 7, 2, 7])
 IPNET2SMPL_IDX = np.array([12, 7, 20, 4, 18, 16, 8, 21, 5, 19, 17, 0, 1, 2])
@@ -22,8 +26,10 @@ IPNET2SMPL_IDX = np.array([12, 7, 20, 4, 18, 16, 8, 21, 5, 19, 17, 0, 1, 2])
 parser = argparse.ArgumentParser('Read and create meshes CAPE dataset.')
 parser.add_argument('--dataset_path', type=str,
                     help='Path to CAPE dataset.')
-parser.add_argument('--subjects', default='00032,00096,00122,00127,00134,00145,00159,00215,02474,03223,03284,03331,03375,03383,03394', type=str, metavar='LIST',
+parser.add_argument('--subjects', default='00096,00122,00032', type=str, metavar='LIST',
                     help='Subjects of CAPE to use, separated by comma.')
+# parser.add_argument('--subjects', default='00032,00096,00122,00127,00134,00145,00159,00215,02474,03223,03284,03331,03375,03383,03394', type=str, metavar='LIST',
+#                     help='Subjects of CAPE to use, separated by comma.')
 parser.add_argument('--sampling_rate', type=int, default=1,
                     help='Sample every K frame(s).')
 parser.add_argument('--bm_path', type=str,
@@ -106,7 +112,7 @@ def cape_extract(args):
     if not os.path.exists(args.points_folder):
         os.makedirs(args.points_folder)
 
-    logger, _ = create_logger(args.points_folder)
+    # logger, _ = create_logger(args.points_folder)
 
     faces = np.load(os.path.join(args.dataset_path, 'cape_release/misc/smpl_tris.npy'))
     with open(os.path.join(args.dataset_path, 'cape_release/misc/subj_genders.pkl'), 'rb') as f:
@@ -155,7 +161,7 @@ def cape_extract(args):
                 try:
                     data = np.load(frame_path)
                 except Exception:
-                    logger.warning('Something wrong with {}'.format(frame_path))
+                    # logger.warning('Something wrong with {}'.format(frame_path))
                     continue
 
                 pose_body = torch.Tensor(data['pose'][3:66]).view(1, -1).cuda()
@@ -188,5 +194,9 @@ def main(args):
 
 
 if __name__ == '__main__':
+    print(f'train_scanimate pid : {os.getpid()}')
+    input()
+
+    
     args = parser.parse_args()
     main(args)

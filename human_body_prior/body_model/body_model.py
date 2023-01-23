@@ -67,6 +67,7 @@ class BodyModel(nn.Module):
             num_betas = num_total_betas
 
         print (smpl_dict['shapedirs'].shape)
+        smpl_dict['shapedirs']=np.asarray(smpl_dict['shapedirs'])
         shapedirs = smpl_dict['shapedirs'][:, :, :num_betas]
         self.register_buffer('shapedirs', torch.tensor(shapedirs, dtype=dtype))
 
