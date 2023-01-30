@@ -395,7 +395,7 @@ class CAPECorrDataset(data.Dataset):
             if np.max(raw_trimesh.vertices) > 10:
                 raw_trimesh.vertices /= 1000 # mm to m
 
-        body_mesh_a_pose = points_dict['a_pose_mesh_points']  # 有衣服的 a-pose, 用 cape 可生成 posed-cloth-body-mesh
+        body_mesh_a_pose = points_dict['a_pose_mesh_points']  # 有衣服的 a-pose 合着腿那种，考虑了shape pose blending
         # Break symmetry if given in float16:
         if body_mesh_a_pose.dtype == np.float16:
             body_mesh_a_pose = body_mesh_a_pose.astype(np.float32)
@@ -406,6 +406,8 @@ class CAPECorrDataset(data.Dataset):
         a_pose_trimesh = trimesh.Trimesh(vertices=body_mesh_a_pose, faces=self.faces, process=False)
 
         n_smpl_points = body_mesh_a_pose.shape[0]
+        # Cape 在 smpl 基础上计算了是 G(世界坐标系的绝对旋转)，
+        # 已经省去了从 pose（相对旋转）计算得到 G 的过程。包含了root_orient(pose[0])
         bone_transforms_org = points_dict['bone_transforms'].astype(np.float32)
         bone_transforms = bone_transforms_org.copy()
         trans = points_dict['trans'].astype(np.float32)
@@ -443,10 +445,11 @@ class CAPECorrDataset(data.Dataset):
         T = np.dot(skinning_weights, bone_transforms.reshape([-1, 16])).reshape([-1, 4, 4])
 
         homogen_coord = np.ones([n_smpl_points, 1], dtype=np.float32)
-        a_pose_homo = np.concatenate([body_mesh_a_pose_0, homogen_coord], axis=-1).reshape([n_smpl_points, 4, 1])
+        a_pose_homo = np.concatenate([body_mesh_a_pose_0, homogen_coord], axis=-1).reshape([n_smpl_points, 4, 1]) # pose cloth
+        # 可以朝向任何方向，没有方向的归一化
         body_mesh = (np.matmul(T, a_pose_homo)[:, :3, 0].astype(np.float32) + trans).astype(np.float32)
-
-        a_pose_homo = np.concatenate([minimal_shape, homogen_coord], axis=-1).reshape([n_smpl_points, 4, 1])
+        
+        a_pose_homo = np.concatenate([minimal_shape, homogen_coord], axis=-1).reshape([n_smpl_points, 4, 1])# pose minimal-cloth
         minimal_body_mesh = np.matmul(T, a_pose_homo)[:, :3, 0].astype(np.float32) + trans
         if self.mode in ['val', 'test']:
             minimal_body_vertices = minimal_body_mesh.copy()
@@ -534,10 +537,10 @@ class CAPECorrDataset(data.Dataset):
         bone_transforms_02v[chain, :3, -1] -= np.dot(Jtr[chain], rot.T)
         bone_transforms_02v_org = bone_transforms_02v.copy()
 
-        T = np.matmul(skinning_weights, bone_transforms_02v.reshape([-1, 16])).reshape([-1, 4, 4])
-        body_mesh_v_pose_0 = np.matmul(T[:, :3, :3], body_mesh_a_pose_0[..., np.newaxis]).squeeze(-1) + T[:, :3, -1]
+        T = np.matmul(skinning_weights, bone_transforms_02v.reshape([-1, 16])).reshape([-1, 4, 4])  # T of Vitruvian pose
+        body_mesh_v_pose_0 = np.matmul(T[:, :3, :3], body_mesh_a_pose_0[..., np.newaxis]).squeeze(-1) + T[:, :3, -1] # 分开腿
         minimal_shape_v = np.matmul(T[:, :3, :3], minimal_shape[..., np.newaxis]).squeeze(-1) + T[:, :3, -1]
-
+        # cano dont consider shape and pose blend, while hat consider
         points_corr_cano, points_corr_hat, _, mask, closest_faces, _ = self.map_mesh_points_to_reference(points_corr, body_mesh, self.faces, self.v_templates[gender], body_mesh_v_pose_0, skinning_weights)
         _, _, pts_W, _, _, _ = self.map_mesh_points_to_reference(points_corr, minimal_body_mesh, self.faces, self.v_templates[gender], minimal_shape, skinning_weights)
 

@@ -89,8 +89,8 @@ def get_model(cfg, device=None, **kwargs):
     simple_concat = cfg['model']['simple_concat']
 
     decoder = get_sdf_decoder(cfg, device)
-    skinning_decoder_fwd, skinning_decoder_bwd = get_skinning_decoder(cfg, device, dim, c_dim)
-    encoder_fwd, encoder_bwd = get_skinning_encoder(cfg, device, c_dim)
+    skinning_decoder_fwd, skinning_decoder_bwd = get_skinning_decoder(cfg, device, dim, c_dim) # NASAGroupNormDecoder
+    encoder_fwd, encoder_bwd = get_skinning_encoder(cfg, device, c_dim) # ConvPointnet
 
     # Get full MetaAvatar model
     model = models.MetaAvatar(
@@ -125,7 +125,7 @@ def get_trainer(model, optimizer, cfg, device, **kwargs):
     no_test_loss = cfg['training']['no_test_loss']
     optim_iterations = cfg['training']['optim_iterations']
 
-    max_operator = cfg['training']['max_operator']
+    # max_operator = cfg['training']['max_operator']
 
     stage = cfg['training']['stage']
     inner_lr = cfg['training']['inner_lr']

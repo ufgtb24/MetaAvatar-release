@@ -1,0 +1,3 @@
+# SubjectID Cloth-type Finetne-actions Test-actions Subsampling-rate Fintune-epochs Config-file
+0 shortlong ATUsquat,ballerina_spin,pose_model,bend_back_and_front hips,soccer 1 256 configs/meta-avatar/meta-hyper.yaml
+

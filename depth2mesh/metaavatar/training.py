@@ -156,9 +156,9 @@ class Trainer(BaseTrainer):
         outer_loss = torch.zeros(1, device=self.device)
         outer_loss_dict = {}
 
-        coords = in_dict['coords']
+        coords = in_dict['coords']  # input
         batch_size = coords.size(0)
-        sdf = in_dict['sdf']
+        sdf = in_dict['sdf']  # label
         normals = in_dict['normals']
 
         if self.stage == 'meta':
@@ -193,7 +193,7 @@ class Trainer(BaseTrainer):
                     gt = {'sdf': sdf[b_idx].unsqueeze(0), 'normals': normals[b_idx].unsqueeze(0)}
 
                     inner_optimizer = torch.optim.Adam(decoder_clone.parameters(), lr=self.inner_step_size)
-
+                    # inner loop 本质目的是为了像强化学习一样，用分布一致的数据来稳定收敛
                     for iter in range(self.n_inner_steps):
                         inner_output = decoder_clone(decoder_input)
                         inner_loss, inner_loss_dict = self.compute_sdf_loss(inner_output, gt)
@@ -355,11 +355,11 @@ class Trainer(BaseTrainer):
         device = self.device
         points_corr = data.get('points_corr').to(device)
         points_corr_cano = data.get('points_corr.cano').to(device)
-        points_corr_hat = data.get('points_corr.a_pose').to(device)
+        points_corr_hat = data.get('points_corr.a_pose').to(device) # cloth v-pose
         bone_transforms = data.get('points_corr.bone_transforms').to(device)
         bone_transforms_02v = data.get('points_corr.bone_transforms_02v').to(device)
         skinning_weights = data.get('points_corr.skinning_weights').to(device)
-        minimal_shape = data.get('points_corr.minimal_shape').to(device)
+        minimal_shape = data.get('points_corr.minimal_shape').to(device) # minimal-cloth v-pose
 
         batch_size = points_corr.size(0)
         loc = data.get('points_corr.loc').to(device)
@@ -418,8 +418,8 @@ class Trainer(BaseTrainer):
         if self.stage in ['meta', 'meta-hyper']:
             if hasattr(self.model.decoder, 'hierarchical_pose'):
                 if self.model.decoder.hierarchical_pose and self.stage == 'meta-hyper':
-                    rots = data.get('points_corr.rots').to(device)
-                    Jtrs = data.get('points_corr.Jtrs').to(device)
+                    rots = data.get('points_corr.rots').to(device) # pose rotaion  24 x 9
+                    Jtrs = data.get('points_corr.Jtrs').to(device) # pose joint location
                     out_dict.pop('cond', None)
                     out_dict.update({'rots': rots, 'Jtrs': Jtrs})
 

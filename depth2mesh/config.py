@@ -88,7 +88,7 @@ def get_trainer(model, optimizer, cfg, device):
 
 
 # Datasets
-def get_dataset(mode, cfg, subject_idx=None, cloth_split=None, act_split=None, subsampling_rate=1, start_offset=0):
+def  get_dataset(mode, cfg, subject_idx=None, cloth_split=None, act_split=None, subsampling_rate=1, start_offset=0):
     ''' Returns the dataset.
 
     Args:

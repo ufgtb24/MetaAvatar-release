@@ -8,9 +8,12 @@ data:
   input_pointcloud_noise: 0.0
   use_aug: true
   normalized_scale: true
-  train_split: ['00032', '00096', '00127', '00145', '02474', '03223', '03284', '03331', '03383', '03394']
-  val_split: ['00122', '00134', '00215', '03375']
-  test_split: ['00122', '00134', '00215', '03375']
+  train_split: [ '00096' ]
+  val_split: [ '00122' ]
+  test_split: [ '00032' ]
+  #  train_split: ['00032', '00096', '00127', '00145', '02474', '03223', '03284', '03331', '03383', '03394']
+#  val_split: ['00122', '00134', '00215', '03375']
+#  test_split: ['00122', '00134', '00215', '03375']
   single_view: true
   use_raw_scans: false
 model:

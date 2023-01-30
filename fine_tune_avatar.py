@@ -1,3 +1,4 @@
+
 import os
 import torch
 import trimesh
@@ -11,6 +12,7 @@ from depth2mesh.checkpoints import CheckpointIO
 from depth2mesh.metaavatar import models
 
 from depth2mesh.utils.logs import create_logger
+
 
 parser = argparse.ArgumentParser(
     description='Do fine-tuning on validation set, then extract meshes on novel poses.'
@@ -130,6 +132,9 @@ def get_transforms_02v(Jtr):
     return bone_transforms_02v
 
 if __name__ == '__main__':
+    print(f'finetune pid : {os.getpid()}')
+    time.sleep(10)
+    # args 从 run_fine_tuning.sh 末尾的 jobs/splits 逐行读取， 本 py 文件运行多次，每次按照一个配置
     args = parser.parse_args()
     cfg = config.load_config(args.config, 'configs/default.yaml')
     is_cuda = (torch.cuda.is_available() and not args.no_cuda)

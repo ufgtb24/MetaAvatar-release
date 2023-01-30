@@ -26,7 +26,7 @@ IPNET2SMPL_IDX = np.array([12, 7, 20, 4, 18, 16, 8, 21, 5, 19, 17, 0, 1, 2])
 parser = argparse.ArgumentParser('Read and create meshes CAPE dataset.')
 parser.add_argument('--dataset_path', type=str,
                     help='Path to CAPE dataset.')
-parser.add_argument('--subjects', default='00096,00122,00032', type=str, metavar='LIST',
+parser.add_argument('--subjects', default='00127', type=str, metavar='LIST',
                     help='Subjects of CAPE to use, separated by comma.')
 # parser.add_argument('--subjects', default='00032,00096,00122,00127,00134,00145,00159,00215,02474,03223,03284,03331,03375,03383,03394', type=str, metavar='LIST',
 #                     help='Subjects of CAPE to use, separated by comma.')
