@@ -156,7 +156,7 @@ class SingleBVPNet(MetaModule):
 
     def forward(self, model_input, testing=False, params=None):
         if params is None:
-            params = OrderedDict(self.named_parameters())
+            params = OrderedDict(self.named_parameters()) # acquire model's param
 
         # Enables us to compute gradients w.r.t. coordinates
         if not testing:
@@ -281,7 +281,7 @@ class HyperBVPNet(nn.Module):
         else:
             cond_org = model_input['cond']
             cond = cond_org
-
+        # self.net 的 forward 比较特殊，不是推理，而是创建网络实例
         decoder = self.net(cond)
         output = decoder(coords)
 

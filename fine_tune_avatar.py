@@ -31,7 +31,7 @@ parser.add_argument('--epochs-per-run', type=int, default=-1,
                     help='Number of epochs to train before restart.')
 parser.add_argument('--optim-epochs', type=int, default=-1,
                     help='Number of total epochs  to train.')
-parser.add_argument('--num-workers', type=int, default=8,
+parser.add_argument('--num-workers', type=int, default=0,
                     help='Number of workers to use for train and val loaders.')
 parser.add_argument('--interpolation', action='store_true', help='Interpolation task.')
 parser.add_argument('--high-res', action='store_true', help='Run marching cubes at high resolution (512^3).')
@@ -186,8 +186,8 @@ if __name__ == '__main__':
         test_dataset, batch_size=1, num_workers=0, shuffle=False)
 
     # Model
-    model = config.get_model(cfg, device=device, dataset=train_dataset)
-    ckpt = torch.load(os.path.join(out_dir, cfg['test']['model_file']))
+    model = config.get_model(cfg, device=device, dataset=train_dataset) # 给非残差部分(IGR)用 stage1 赋值, 这部分在 finetune不能优化
+    ckpt = torch.load(os.path.join(out_dir, cfg['test']['model_file'])) # 给残差部分(hypernet)用 stage2 赋值，这部分在 finetune 中优化
     decoder_state_dict = OrderedDict()
 
     # Load meta-learned SDF decoder
@@ -238,15 +238,15 @@ if __name__ == '__main__':
     decoder_clone = decoder_clone.to(device)
 
     if stage == 'meta-hyper' and cfg['model']['decoder'] == 'hyper_bvp':
-        if model.decoder.hierarchical_pose:
+        if model.decoder.hierarchical_pose:  # hyper_layer 和 pose_encoder 被一起 fine_tune
             inner_optimizer = torch.optim.Adam(
                 params = [
                     {
-                        "params": decoder_clone.net.parameters(),
+                        "params": decoder_clone.net.parameters(),  # params of hyperlayers
                         "lr": inner_lr,
                     },
                     {
-                        "params": decoder_clone.pose_encoder.parameters(),
+                        "params": decoder_clone.pose_encoder.parameters(),  # params of pose_encoder
                         "lr": 1e-4,
                     }
                 ]
@@ -321,9 +321,9 @@ if __name__ == '__main__':
 
             # Use the learned skinning net to transform points to A-pose
             t = time.time()
-            with torch.no_grad():
+            with torch.no_grad(): # 用 skinning_weights 推理出 p_hat ，标记为 1， 加入随机点标记为0，训练sdf
                 out_dict = model(inputs, points_corr, stage='skinning_weights', **kwargs)
-
+            # predict from skinning net
             points_corr_hat = out_dict.get('p_hat')
             points_corr_reproj = out_dict.get('p_rp')
             normals_a_pose = out_dict.get('normals_a_pose')
@@ -359,7 +359,8 @@ if __name__ == '__main__':
                 normals_in = torch.cat([on_surface_normals, off_surface_normals], dim=1)
             else:
                 normals_in = torch.zeros_like(coords_in)
-
+                
+            # depth image, 部分身体采样，finetune 就是融合。需要在 cano space 完成融合
             decoder_input = {'coords': coords_in}
             if decoder_clone.hierarchical_pose:
                 rots = data.get('points_corr.rots').to(device)
@@ -405,8 +406,9 @@ if __name__ == '__main__':
     # If we have not reached desired fine-tuning epoch, then exit with code 3.
     # This for job-chaining on HPC clusters. You can ignore this if you run
     # fine-tuning on local machines.
-    if epoch_it < max_epoch:
-        exit(3)
+    
+    # if epoch_it < max_epoch:
+    #     exit(3)
 
     # Novel pose synthesis
     model_count = 0
@@ -414,7 +416,7 @@ if __name__ == '__main__':
     all_skinning_weights = dict(np.load('body_models/misc/skinning_weights_all.npz'))
 
     # Load forward and backward skinning networks, for novel-pose synthesis
-    optim_skinning_net_path = cfg['model']['skinning_net2']
+    optim_skinning_net_path = cfg['model']['skinning_net2'] # use full point skinning ckpt when testing
     ckpt = torch.load(optim_skinning_net_path)
 
     encoder_fwd_state_dict = OrderedDict()

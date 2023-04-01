@@ -158,8 +158,8 @@ class HyperFC(nn.Module):
             state_dict = torch.load(initial_model)['model']
 
             hypo_params_init = torch.cat([state_dict['decoder.net.net.0.0.weight'].view(-1), state_dict['decoder.net.net.0.0.bias'].view(-1)], dim=0).view(1, -1)
-            hypo_params_init = hypo_params_init.clone().detach().requires_grad_(False)
-
+            hypo_params_init = hypo_params_init.clone().detach().requires_grad_(False) # meta-hyper 只学习残差部分，也就是 pose 部分
+            # 需要优化的参数都在 HyperLayer 里
             self.layers.append(PreconfHyperLayer(in_ch=in_ch, out_ch=hidden_ch, hypo_params_init=hypo_params_init))
 
             for i in range(num_hidden_layers):
@@ -270,4 +270,4 @@ class HyperLinear(nn.Module):
         biases = biases.view(*(biases.size()[:-1]), 1, self.out_ch)
         weights = weights.view(*(weights.size()[:-1]), self.out_ch, self.in_ch)
 
-        return BatchLinear(weights=weights, biases=biases)
+        return BatchLinear(weights=weights, biases=biases)   # 创建一个网络结构的实例，而不是推理

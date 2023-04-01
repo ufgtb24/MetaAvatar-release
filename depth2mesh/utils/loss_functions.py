@@ -88,8 +88,8 @@ def sdf_with_mask(model_output, gt):
     gradient = diff_operators.gradient(pred_sdf, coords)
 
     # Wherever boundary_values is not equal to zero, we interpret it as a boundary constraint.
-    sdf_constraint = torch.where((gt_sdf != -1) & mask, pred_sdf, torch.zeros_like(pred_sdf))
-    inter_constraint = torch.where((gt_sdf != -1) & mask, torch.zeros_like(pred_sdf), torch.exp(-1e2 * torch.abs(pred_sdf)))
+    sdf_constraint = torch.where((gt_sdf != -1) & mask, pred_sdf, torch.zeros_like(pred_sdf)) # on-surface
+    inter_constraint = torch.where((gt_sdf != -1) & mask, torch.zeros_like(pred_sdf), torch.exp(-1e2 * torch.abs(pred_sdf))) # off-surface
     normal_constraint = torch.where((gt_sdf != -1) & (gt_normals.sum(-1) != 0).unsqueeze(-1) & mask,
                                     1 - F.cosine_similarity(gradient, gt_normals, dim=-1)[..., None],
                                     torch.zeros_like(gradient[..., :1]))

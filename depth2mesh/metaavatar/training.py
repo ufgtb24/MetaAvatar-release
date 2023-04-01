@@ -182,8 +182,8 @@ class Trainer(BaseTrainer):
         elif self.meta_learner == 'reptile':
             if self.stage == 'meta':
                 for b_idx in range(batch_size):
-                    decoder_clone = models.decoder_dict[self.decoder](**self.decoder_kwargs)
-                    decoder_clone.load_state_dict(self.model.decoder.state_dict())
+                    decoder_clone = models.decoder_dict[self.decoder](**self.decoder_kwargs) # init
+                    decoder_clone.load_state_dict(self.model.decoder.state_dict())   # copy
                     decoder_clone = decoder_clone.to(self.device)
 
                     decoder_input = {'coords': coords[b_idx].unsqueeze(0)}

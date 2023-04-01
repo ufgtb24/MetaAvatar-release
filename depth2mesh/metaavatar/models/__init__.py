@@ -91,12 +91,14 @@ class MetaAvatar(nn.Module):
         if stage == 'skinning_weights':
             # Predict backward skinning weights
             c = self.encode_inputs(inputs, forward=False, **kwargs)  # (ConvPointNet)cal 2d feature of 3 projection planes through unet
+            # 利用了 unet 的抽象和细节分析能力，只输入点云，输出的每个点融合了 pose 方向等全局信息
             c_p = self.get_point_features(p, c=c, forward=False, **kwargs) # cat 2d feature as 3d feature [bsize,96,5000]
 
             pts_W_bwd = self.decode_w(p, c=c_p, forward=False, **kwargs)
             pts_W_bwd = F.softmax(pts_W_bwd, dim=1).transpose(1, 2)
 
             normals = kwargs.get('normals', None)
+            # when single_view is true, p_hat also only include front partial points
             p_hat, normals_a_pose = self.LBS(p, pts_W_bwd, kwargs['bone_transforms'], kwargs['bone_transforms_02v'], forward=False, normals=normals)
             p_hat = p_hat.detach()
 

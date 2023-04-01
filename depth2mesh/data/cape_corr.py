@@ -1,4 +1,7 @@
 import os
+
+import vedo
+
 os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
 import glob
 import numpy as np
@@ -386,7 +389,7 @@ class CAPECorrDataset(data.Dataset):
             pitch = self.data[idx]['pitch']
             yaw = self.data[idx]['yaw']
             aug_rot = self.augm_params(roll, pitch, yaw).astype(np.float32)
-
+        # cape related data: vertice(no face), pose, joints,trans....
         points_dict = np.load(data_path)
 
         # Load registered models and (optionally) raw scans
@@ -395,7 +398,7 @@ class CAPECorrDataset(data.Dataset):
             if np.max(raw_trimesh.vertices) > 10:
                 raw_trimesh.vertices /= 1000 # mm to m
 
-        body_mesh_a_pose = points_dict['a_pose_mesh_points']  # 有衣服的 a-pose 合着腿那种，考虑了shape pose blending
+        body_mesh_a_pose = points_dict['a_pose_mesh_points']  # [6890*3]有衣服的 a-pose 合着腿那种，考虑了shape pose blending
         # Break symmetry if given in float16:
         if body_mesh_a_pose.dtype == np.float16:
             body_mesh_a_pose = body_mesh_a_pose.astype(np.float32)
@@ -423,7 +426,7 @@ class CAPECorrDataset(data.Dataset):
         pose = R.from_rotvec(pose.reshape([-1, 3]))
         pose_quat = pose.as_quat()
 
-        pose_quat = pose_quat.reshape(-1)
+        pose_quat = pose_quat.reshape(-1)  # IGR 中会用到
         pose_rot = np.concatenate([np.expand_dims(np.eye(3), axis=0), pose.as_matrix()], axis=0).reshape([-1, 9])   # 24 x 9
 
         # Minimally clothed shape
@@ -439,18 +442,17 @@ class CAPECorrDataset(data.Dataset):
         pose_feature = (pose_mat - ident).reshape([207, 1])
         pose_offsets = np.dot(posedir.reshape([-1, 207]), pose_feature).reshape([6890, 3])
         minimal_shape += pose_offsets
-
         # Get posed clothed and minimally-clothed SMPL meshes
         skinning_weights = self.skinning_weights[gender]
         T = np.dot(skinning_weights, bone_transforms.reshape([-1, 16])).reshape([-1, 4, 4])
 
         homogen_coord = np.ones([n_smpl_points, 1], dtype=np.float32)
-        a_pose_homo = np.concatenate([body_mesh_a_pose_0, homogen_coord], axis=-1).reshape([n_smpl_points, 4, 1]) # pose cloth
+        a_pose_homo = np.concatenate([body_mesh_a_pose_0, homogen_coord], axis=-1).reshape([n_smpl_points, 4, 1])
         # 可以朝向任何方向，没有方向的归一化
-        body_mesh = (np.matmul(T, a_pose_homo)[:, :3, 0].astype(np.float32) + trans).astype(np.float32)
+        body_mesh = (np.matmul(T, a_pose_homo)[:, :3, 0].astype(np.float32) + trans).astype(np.float32)  # pose cloth
         
-        a_pose_homo = np.concatenate([minimal_shape, homogen_coord], axis=-1).reshape([n_smpl_points, 4, 1])# pose minimal-cloth
-        minimal_body_mesh = np.matmul(T, a_pose_homo)[:, :3, 0].astype(np.float32) + trans
+        a_pose_homo = np.concatenate([minimal_shape, homogen_coord], axis=-1).reshape([n_smpl_points, 4, 1])
+        minimal_body_mesh = np.matmul(T, a_pose_homo)[:, :3, 0].astype(np.float32) + trans  # pose minimal-cloth
         if self.mode in ['val', 'test']:
             minimal_body_vertices = minimal_body_mesh.copy()
 
@@ -479,7 +481,7 @@ class CAPECorrDataset(data.Dataset):
                 points_corr, depth_image = get_3DSV(raw_trimesh)
                 points_corr_reg, _, _ = get_3DSV(posed_trimesh)
             else:
-                points_corr, depth_image = get_3DSV(posed_trimesh)
+                points_corr, depth_image = get_3DSV(posed_trimesh) # front points of mesh
 
             normals = None  # we don't use normals for single-view setup
 
@@ -540,7 +542,8 @@ class CAPECorrDataset(data.Dataset):
         T = np.matmul(skinning_weights, bone_transforms_02v.reshape([-1, 16])).reshape([-1, 4, 4])  # T of Vitruvian pose
         body_mesh_v_pose_0 = np.matmul(T[:, :3, :3], body_mesh_a_pose_0[..., np.newaxis]).squeeze(-1) + T[:, :3, -1] # 分开腿
         minimal_shape_v = np.matmul(T[:, :3, :3], minimal_shape[..., np.newaxis]).squeeze(-1) + T[:, :3, -1]
-        # cano dont consider shape and pose blend, while hat consider
+        # 找出 points_corr 在 cano 下的对应坐标，用points_corr的采样源头 body_mesh 和 a_pose_cloth_mesh 的点映射
+        # points_corr_cano 在训练中用不上，只用 hat，作为 cano
         points_corr_cano, points_corr_hat, _, mask, closest_faces, _ = self.map_mesh_points_to_reference(points_corr, body_mesh, self.faces, self.v_templates[gender], body_mesh_v_pose_0, skinning_weights)
         _, _, pts_W, _, _, _ = self.map_mesh_points_to_reference(points_corr, minimal_body_mesh, self.faces, self.v_templates[gender], minimal_shape, skinning_weights)
 

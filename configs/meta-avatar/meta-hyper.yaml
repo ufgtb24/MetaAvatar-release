@@ -32,7 +32,7 @@ model:
 training:
   gpus: [0]
   out_dir:  out/meta-avatar/conv-unet-plane64x3_CAPE-SV_keep-aspect_stage2-inner-1e-6-outer-1e-6_1gpus
-  batch_size: 0
+  batch_size: 4
   inner_batch_size: 4
   model_selection_metric: loss
   model_selection_mode: minimize
